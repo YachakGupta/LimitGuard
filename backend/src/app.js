@@ -7,6 +7,7 @@ import cookieParser from "cookie-parser";
 import healthRouter from "./routes/healthRoutes.js";
 import contextRouter from "./routes/contextRoutes.js";
 import authRouter from "./routes/authRoutes.js";
+import conversationRouter from "./routes/conversationRoutes.js";
 import { errorMiddleware } from "./middlewares/error.js";
 
 const app = express();
@@ -27,6 +28,7 @@ app.use(cookieParser());
 app.use("/api/v1/health", healthRouter);
 app.use("/api/v1/context", contextRouter);
 app.use("/api/v1/auth", authRouter);
+app.use("/api/v1/conversations",conversationRouter);
 
 app.get("/", (req, res) => {
   res.json({
