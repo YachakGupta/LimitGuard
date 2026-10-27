@@ -4,7 +4,13 @@ import User from "../models/userModel.js";
 import { asyncHandler } from "./asyncHandler.js";
 
 export const protect = asyncHandler(async (req, res, next) => {
-  const token = req.cookies?.token;
+  const authHeader = req.headers.authorization;
+
+  const token = req.cookies?.token ||
+  (authHeader?.startsWith("Bearer ")
+    ? authHeader.slice(7).trim()
+    : null);
+  
 
   if (!token) {
     return res.status(401).json({

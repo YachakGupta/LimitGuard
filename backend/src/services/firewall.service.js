@@ -1,6 +1,6 @@
 import "dotenv/config";
 const FIREWALL_API_URL = (
-  process.env.FIREWALL_API_URL || "http://127.0.0.1:8001"
+  process.env.FIREWALL_API_URL || "http://127.0.0.1:8000"
 ).replace(/\/+$/, "");
 
 export const processContext = async ({

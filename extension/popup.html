@@ -1,0 +1,71 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LimitGuard</title>
+  <style>
+    body {
+      width: 280px;
+      padding: 16px;
+      background: #111827;
+      color: #f9fafb;
+      font-family: Arial, sans-serif;
+    }
+    h2 { color: #60a5fa; }
+    input, button {
+      box-sizing: border-box;
+      width: 100%;
+      padding: 10px;
+      margin-top: 8px;
+      border-radius: 6px;
+    }
+    input {
+      background: #1f2937;
+      color: white;
+      border: 1px solid #4b5563;
+    }
+    button {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 14px;
+}
+
+.toggle-row input {
+  width: auto;
+  margin: 0;
+}
+
+    #status { overflow-wrap: anywhere; }
+  </style>
+</head>
+<body>
+  <h2>🛡️ LimitGuard</h2>
+  <p>AI Context Firewall</p>
+
+  <label for="token">Backend authentication token</label>
+  <input id="token" type="password" placeholder="Paste JWT token">
+
+  <button id="connect">Connect</button>
+  <p id="status">Not connected</p>
+
+  
+  <label class="toggle-row">
+    <input id="refinePrompt" type="checkbox" checked />
+    <span>Refine prompts with AI</span>
+   </label>
+
+
+  <script src="popup.js"></script>
+</body>
+</html>
