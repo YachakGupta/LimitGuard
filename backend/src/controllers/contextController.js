@@ -5,7 +5,7 @@ import { calculateRiskScore } from "../utils/riskScore.js";
 import ErrorHandler from "../middlewares/error.js";
 import { asyncHandler } from "../middlewares/asyncHandler.js";
 
-// Analyze a prompt or uploaded file using the Context Firewall
+// Analyze a prompt or uploaded document using the Context Firewall.
 export const analyseContext = asyncHandler(async (req, res, next) => {
   const {
     text,
@@ -16,53 +16,62 @@ export const analyseContext = asyncHandler(async (req, res, next) => {
   const prompt = typeof text === "string" ? text.trim() : "";
   const file = req.file;
 
+  // Require either text or an uploaded file.
   if (!prompt && !file) {
     return next(
       new ErrorHandler("Please provide a prompt or a file.", 400)
     );
   }
 
+  // Send the content to the real firewall API.
   const result = await processContext({
     prompt,
     file,
-    localOnly:
-      local_only === true || local_only === "true",
+    localOnly: local_only === true || local_only === "true",
     externalProviderEnabled:
       external_provider_enabled === true ||
       external_provider_enabled === "true",
   });
 
-  const privacy = result.privacy;
-  const recommendation = String(
-    privacy.document_recommendation || ""
+  const privacy = result?.privacy ?? {};
+
+  // Support the field names returned by the real API.
+  const decision = String(
+    privacy.document_decision ??
+      privacy.document_recommendation ??
+      ""
   ).toUpperCase();
 
-  // Do not save content the firewall recommends removing.
-  if (recommendation === "REMOVE") {
+  // Do not save content the firewall marks for removal.
+  if (decision === "REMOVE") {
     return res.status(200).json({
       success: true,
-      message: "Firewall recommends removing this content. Nothing was saved.",
+      message:
+        "Firewall recommends removing this content. Nothing was saved.",
       data: result,
       saved: false,
     });
   }
 
-  // Use the firewall's processed content, never the raw prompt.
+  // Only use content explicitly returned as sanitized by the firewall.
   const safeContent =
-    privacy.masked_document ||
-    privacy.corrected_prompt ||
-    result.prompt_refinement.refined_prompt ||
-    "";
+    privacy.sanitized_prompt ??
+    privacy.masked_document ??
+    null;
 
-  if (typeof safeContent !== "string" || !safeContent.trim()) {
+  if (
+    typeof safeContent !== "string" ||
+    !safeContent.trim()
+  ) {
     return next(
       new ErrorHandler(
-        "Firewall did not return approved content to save.",
+        "Firewall did not return sanitized content. Nothing was saved.",
         502
       )
     );
   }
 
+  // Extract findings when the firewall supplies them.
   const findings = Array.isArray(privacy.findings)
     ? privacy.findings
     : [];
@@ -73,26 +82,12 @@ export const analyseContext = asyncHandler(async (req, res, next) => {
       : JSON.stringify(finding)
   );
 
-  const allowedRiskLevels = [
-    "low",
-    "medium",
-    "high",
-    "critical",
-    "unknown",
-  ];
-
-  const receivedRiskLevel = String(
-    privacy.sensitivity_level || "unknown"
-  ).toLowerCase();
-
-  const riskLevel = allowedRiskLevels.includes(receivedRiskLevel)
-    ? receivedRiskLevel
-    : "unknown";
-
+  // The current real API response does not provide sensitivity_level.
+  const riskLevel = "unknown";
   const riskScore = calculateRiskScore(riskLevel, findings);
 
+  // Never persist the original prompt or original document.
   const context = await Context.create({
-    // Never persist the submitted raw prompt or original document.
     originalText: "[Not stored for privacy]",
     sanitizedText: safeContent,
     riskLevel,
@@ -112,7 +107,7 @@ export const analyseContext = asyncHandler(async (req, res, next) => {
   });
 });
 
-// Get all saved contexts
+
 export const getAllContexts = asyncHandler(async (req, res) => {
   const contexts = await Context.find().sort({ createdAt: -1 });
 
