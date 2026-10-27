@@ -126,6 +126,74 @@ function showNotice(message) {
 }
 
 
+const LIMITGUARD_INPUT_PRICE_INR_PER_MILLION = 200;
+const LIMITGUARD_METRICS_KEY = "limitguardTokenMetrics";
+const LIMITGUARD_MAX_METRICS = 500;
+
+// Rough estimate: approximately 4 characters per token.
+function estimateTokens(text) {
+  return Math.ceil(text.length / 4);
+}
+
+async function recordPromptMetrics(originalPrompt, sanitizedPrompt) {
+  try {
+    // Estimate token counts for both prompt versions.
+    const originalTokens = estimateTokens(originalPrompt);
+    const sanitizedTokens = estimateTokens(sanitizedPrompt);
+
+    // Do not report negative savings if sanitization makes
+    // the prompt longer.
+    const tokensSaved = Math.max(
+      0,
+      originalTokens - sanitizedTokens
+    );
+
+    const estimatedCostSavedINR =
+      (tokensSaved * LIMITGUARD_INPUT_PRICE_INR_PER_MILLION) /
+      1_000_000;
+
+    const metric = {
+      originalPromptTokens: originalTokens,
+      sanitizedPromptTokens: sanitizedTokens,
+      tokensSaved,
+      estimatedCostSavedINR: Number(
+        estimatedCostSavedINR.toFixed(6)
+      ),
+      inputPriceINRPerMillion:
+        LIMITGUARD_INPUT_PRICE_INR_PER_MILLION,
+      timestamp: new Date().toISOString(),
+      isEstimate: true
+    };
+
+    // Read existing metrics without overwriting previous records.
+    const stored = await chrome.storage.local.get(
+      LIMITGUARD_METRICS_KEY
+    );
+
+    const metrics = Array.isArray(
+      stored[LIMITGUARD_METRICS_KEY]
+    )
+      ? stored[LIMITGUARD_METRICS_KEY]
+      : [];
+
+    metrics.push(metric);
+
+    // Keep the latest 500 records to limit storage growth.
+    const recentMetrics = metrics.slice(-LIMITGUARD_MAX_METRICS);
+
+    await chrome.storage.local.set({
+      [LIMITGUARD_METRICS_KEY]: recentMetrics
+    });
+
+    console.log("LimitGuard estimated token metrics:", metric);
+  } catch (error) {
+    // Analytics errors must never interfere with prompt submission.
+    console.error("LimitGuard analytics failed:", error);
+  }
+}
+
+
+
 
 function fileKey(file) {
   return `${file.name}|${file.size}|${file.lastModified}`;
@@ -180,7 +248,14 @@ async function protectAndSubmit(editor, clickedButton = null) {
       return;
     }
 
-    writePrompt(editor, result.sanitizedPrompt.trim());
+    
+    const sanitizedPrompt = result.sanitizedPrompt.trim();
+
+    // Record analytics independently of the submission flow.
+    void recordPromptMetrics(originalPrompt, sanitizedPrompt);
+
+    writePrompt(editor, sanitizedPrompt);
+
 
     await new Promise((resolve) => setTimeout(resolve, 150));
 
