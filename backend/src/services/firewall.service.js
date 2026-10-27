@@ -7,8 +7,7 @@ export const processContext = async ({
   prompt,
   file,
   localOnly = true,
-  externalProviderEnabled = false,
-  mockHeaders,
+  externalProviderEnabled = false   
 }) => {
   if (
     (typeof prompt !== "string" || !prompt.trim()) &&
@@ -42,22 +41,6 @@ export const processContext = async ({
   // Forward mock-test headers only to the local mock server.
   const headers = {};
 
-  if (new URL(FIREWALL_API_URL).port === "8000") {
-    if (mockHeaders?.recommendation) {
-      headers["x-mock-recommendation"] =
-        mockHeaders.recommendation;
-    }
-
-    if (mockHeaders?.sensitivity) {
-      headers["x-mock-sensitivity"] =
-        mockHeaders.sensitivity;
-    }
-
-    if (mockHeaders?.findings) {
-      headers["x-mock-findings"] = mockHeaders.findings;
-    }
-  }
-
   console.log("Firewall URL:", FIREWALL_API_URL);
   console.log("Firewall endpoint:", `${FIREWALL_API_URL}/context-firewall`);
 
@@ -82,12 +65,19 @@ export const processContext = async ({
   const data = await response.json().catch(() => null);
 
   if (!response.ok) {
-    throw new Error(
-      data?.detail ||
-      data?.message ||
-      `Context Firewall returned HTTP ${response.status}`
-    );
-  }
+  const detail = data?.detail ?? data?.message;
+  const message =
+    typeof detail === "string"
+      ? detail
+      : detail
+      ? JSON.stringify(detail)
+      : `Context Firewall returned HTTP ${response.status}`;
+
+  console.error("Firewall HTTP status:", response.status);
+  console.error("Firewall error detail:", message);
+
+  throw new Error(message);
+}
 
   if (
     !data?.privacy ||
