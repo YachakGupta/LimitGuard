@@ -197,6 +197,37 @@ html:not(.dark) ::-webkit-scrollbar-thumb {
   animation: popChip3 8s ease-out infinite;
 }
 
+/* Staggered dashboard fade-up & pulsing status */
+@keyframes dashboardFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: dashboardFadeUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes firewallPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.9);
+  }
+}
+
+.animate-pulse-green {
+  animation: firewallPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
 /* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
   .animate-redact-token,
@@ -205,7 +236,9 @@ html:not(.dark) ::-webkit-scrollbar-thumb {
   .animate-fade-in-after,
   .animate-pop-chip-1,
   .animate-pop-chip-2,
-  .animate-pop-chip-3 {
+  .animate-pop-chip-3,
+  .animate-fade-up,
+  .animate-pulse-green {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;

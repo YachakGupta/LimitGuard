@@ -9,7 +9,13 @@ import {
 import Logo from './Logo';
 import ThemeToggle from './ThemeToggle';
 
-export default function AppLayout({ children, title }) {
+export default function AppLayout({
+  children,
+  title,
+  subtitle,
+  onRefresh,
+  contentClassName = 'p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto',
+}) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const user = useSelector(selectCurrentUser);
   const location = useLocation();
@@ -247,7 +253,7 @@ export default function AppLayout({ children, title }) {
             {isDashboard && (
               <button
                 type="button"
-                onClick={() => dispatch(fetchDashboard())}
+                onClick={onRefresh || (() => dispatch(fetchDashboard()))}
                 disabled={isRefreshing}
                 aria-label="Refresh dashboard data"
                 title="Refresh dashboard data"
@@ -277,7 +283,7 @@ export default function AppLayout({ children, title }) {
         </header>
 
         {/* Main Page Viewport */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+        <main className={`flex-1 ${contentClassName}`}>
           {children}
         </main>
       </div>

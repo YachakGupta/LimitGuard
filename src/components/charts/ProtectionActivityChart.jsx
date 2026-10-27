@@ -1,11 +1,50 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { useDispatch } from 'react-redux';
 import { retryActivity } from '../../features/dashboard/dashboardSlice';
+
+function getNiceTicks(maxVal, count = 4) {
+  if (maxVal <= 0) return [0, 2, 4];
+  if (maxVal <= 4) {
+    const ticks = [];
+    for (let i = 0; i <= Math.max(maxVal, 3); i++) {
+      ticks.push(i);
+    }
+    return ticks;
+  }
+  const roughStep = maxVal / count;
+  const power = Math.pow(10, Math.floor(Math.log10(roughStep)));
+  const normalized = roughStep / power;
+  let niceStep;
+  if (normalized < 1.5) niceStep = 1;
+  else if (normalized < 3) niceStep = 2;
+  else if (normalized < 7) niceStep = 5;
+  else niceStep = 10;
+
+  const step = Math.max(1, Math.round(niceStep * power));
+  const maxTick = Math.ceil(maxVal / step) * step;
+  const ticks = [];
+  for (let i = 0; i <= maxTick; i += step) {
+    ticks.push(Math.round(i));
+  }
+  return ticks;
+}
 
 export default function ProtectionActivityChart({ data = [], loading = false, error = null }) {
   const dispatch = useDispatch();
   const [hoverIndex, setHoverIndex] = useState(null);
   const svgRef = useRef(null);
+
+  // Totals for legend counts
+  const totals = useMemo(() => {
+    return data.reduce(
+      (acc, d) => ({
+        analyzed: acc.analyzed + (Number(d.analyzed) || 0),
+        sanitized: acc.sanitized + (Number(d.sanitized) || 0),
+        blocked: acc.blocked + (Number(d.blocked) || 0),
+      }),
+      { analyzed: 0, sanitized: 0, blocked: 0 }
+    );
+  }, [data]);
 
   if (loading) {
     return (
@@ -29,7 +68,7 @@ export default function ProtectionActivityChart({ data = [], loading = false, er
 
   if (error) {
     return (
-      <div className="bg-[#FFFFFF] dark:bg-[#111114] border border-[#E7E7EF] dark:border-[#26262E] rounded-2xl p-6 shadow-[0_1px_2px_rgba(16,16,40,0.04),0_12px_32px_-12px_rgba(80,60,200,0.18)] dark:shadow-[0_12px_32px_-12px_rgba(0,0,0,0.5)] flex flex-col justify-between min-h-[300px]">
+      <div className="bg-[#FFFFFF] dark:bg-[#111114] border border-[#E7E7EF] dark:border-[#26262E] rounded-2xl p-6 shadow-[0_1px_2px_rgba(16,16,40,0.04),0_12px_32px_-12px_rgba(80,60,200,0.18)] dark:shadow-[0_12px_32px_-12px_rgba(0,0,0,0.5)] flex flex-col justify-between min-h-[340px]">
         <div>
           <h2 className="text-base font-semibold text-[#14142B] dark:text-[#FFFFFF]">Protection Activity</h2>
           <p className="text-xs text-[#55557A] dark:text-[#9A9AB8] mt-0.5">Analyzed, sanitized, and blocked events</p>
@@ -45,7 +84,7 @@ export default function ProtectionActivityChart({ data = [], loading = false, er
           <button
             type="button"
             onClick={() => dispatch(retryActivity())}
-            className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-[#6D5AE6] hover:bg-[#5B48D6] dark:bg-[#8B7CF6] dark:hover:bg-[#7A6AF0] text-white shadow-sm transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#8B7CF6]"
+            className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-[#6D5AE6] hover:bg-[#5B48D6] dark:bg-[#8B7CF6] dark:hover:bg-[#7A6AF0] text-white shadow-xs transition-colors cursor-pointer"
           >
             Retry
           </button>
@@ -56,18 +95,18 @@ export default function ProtectionActivityChart({ data = [], loading = false, er
 
   if (!data || data.length === 0) {
     return (
-      <div className="bg-[#FFFFFF] dark:bg-[#111114] border border-[#E7E7EF] dark:border-[#26262E] rounded-2xl p-6 shadow-[0_1px_2px_rgba(16,16,40,0.04),0_12px_32px_-12px_rgba(80,60,200,0.18)] dark:shadow-[0_12px_32px_-12px_rgba(0,0,0,0.5)] flex flex-col justify-between min-h-[300px]">
+      <div className="bg-[#FFFFFF] dark:bg-[#111114] border border-[#E7E7EF] dark:border-[#26262E] rounded-2xl p-6 shadow-[0_1px_2px_rgba(16,16,40,0.04),0_12px_32px_-12px_rgba(80,60,200,0.18)] dark:shadow-[0_12px_32px_-12px_rgba(0,0,0,0.5)] flex flex-col justify-between min-h-[340px]">
         <div>
           <h2 className="text-base font-semibold text-[#14142B] dark:text-[#FFFFFF]">Protection Activity</h2>
           <p className="text-xs text-[#55557A] dark:text-[#9A9AB8] mt-0.5">Analyzed, sanitized, and blocked events</p>
         </div>
         <div className="flex flex-col items-center justify-center py-10 text-center">
-          <div className="w-12 h-12 rounded-2xl bg-[#1F9D8A]/10 dark:bg-[#4FD1BB]/10 text-[#1F9D8A] dark:text-[#4FD1BB] flex items-center justify-center mb-3">
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="w-14 h-14 rounded-2xl bg-[#1F9D8A]/10 dark:bg-[#4FD1BB]/10 text-[#1F9D8A] dark:text-[#4FD1BB] flex items-center justify-center mb-3">
+            <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
             </svg>
           </div>
-          <p className="text-sm font-semibold text-[#14142B] dark:text-[#FFFFFF]">No data yet</p>
+          <p className="text-sm font-semibold text-[#14142B] dark:text-[#FFFFFF]">No activity data yet</p>
           <p className="text-xs text-[#55557A] dark:text-[#9A9AB8] mt-1">Protection events will be logged here.</p>
         </div>
       </div>
@@ -75,32 +114,26 @@ export default function ProtectionActivityChart({ data = [], loading = false, er
   }
 
   // Dimensions
-  const width = 560;
-  const height = 230;
+  const width = 540;
+  const height = 240;
   const padLeft = 45;
   const padRight = 20;
-  const padTop = 20;
+  const padTop = 35;
   const padBottom = 35;
   const plotW = width - padLeft - padRight;
   const plotH = height - padTop - padBottom;
 
-  // Find max value across all series
   const rawMax = Math.max(
-    ...data.flatMap((d) => [d.analyzed || 0, d.sanitized || 0, d.blocked || 0]),
+    ...data.flatMap((d) => [Number(d.analyzed) || 0, Number(d.sanitized) || 0, Number(d.blocked) || 0]),
     0
   );
-  const maxVal = rawMax === 0 ? 100 : Math.ceil(rawMax * 1.15);
+  const niceTicks = getNiceTicks(rawMax, 4);
+  const maxVal = niceTicks[niceTicks.length - 1] || 10;
 
-  const numGridLines = 4;
-  const gridTicks = Array.from({ length: numGridLines + 1 }, (_, i) => {
-    const val = Math.round((maxVal / numGridLines) * i);
-    const y = padTop + plotH - (val / maxVal) * plotH;
-    return { val, y };
-  });
-
-  const groupWidth = plotW / data.length;
+  // Clamped bar width: max 28px, min 10px
+  const slotWidth = plotW / data.length;
   const barGap = 3;
-  const barWidth = Math.max(3, Math.min(18, (groupWidth - 14) / 3));
+  const barWidth = Math.max(10, Math.min(28, (slotWidth - 24) / 3));
 
   const handlePointerMove = (e) => {
     if (!svgRef.current) return;
@@ -113,46 +146,43 @@ export default function ProtectionActivityChart({ data = [], loading = false, er
       return;
     }
 
-    const idx = Math.min(data.length - 1, Math.max(0, Math.floor(relativeX / groupWidth)));
+    const idx = Math.min(data.length - 1, Math.max(0, Math.floor(relativeX / slotWidth)));
     setHoverIndex(idx);
   };
 
   const hoveredItem = hoverIndex !== null ? data[hoverIndex] : null;
 
-  function formatK(val) {
-    if (val >= 1000000) return `${(val / 1000000).toFixed(1)}M`;
-    if (val >= 1000) return `${Math.round(val / 1000)}k`;
-    return String(val);
-  }
-
   return (
     <div className="bg-[#FFFFFF] dark:bg-[#111114] border border-[#E7E7EF] dark:border-[#26262E] rounded-2xl p-5 sm:p-6 shadow-[0_1px_2px_rgba(16,16,40,0.04),0_12px_32px_-12px_rgba(80,60,200,0.18)] dark:shadow-[0_12px_32px_-12px_rgba(0,0,0,0.5)] transition-all duration-200 relative flex flex-col justify-between">
-      {/* Header with Title and Legend */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+      {/* Header with Title and Legend with Totals */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
         <div>
           <h2 className="text-base font-semibold text-[#14142B] dark:text-[#FFFFFF]">Protection Activity</h2>
           <p className="text-xs text-[#55557A] dark:text-[#9A9AB8] mt-0.5">Prompt outcomes per timeframe</p>
         </div>
 
-        {/* Legend: colors + symbols + lightness differentiation */}
-        <div className="flex items-center gap-3.5 text-xs select-none">
+        {/* Legend with Counts */}
+        <div className="flex items-center gap-3 text-xs select-none flex-wrap">
           <div className="flex items-center gap-1.5 text-[#55557A] dark:text-[#9A9AB8]">
-            <span className="w-2.5 h-2.5 rounded-sm bg-[#6D5AE6] dark:bg-[#A99BFF] ring-1 ring-[#6D5AE6]/30 inline-block" />
+            <span className="w-2.5 h-2.5 rounded-xs bg-[#6D5AE6] dark:bg-[#A99BFF] inline-block shrink-0" />
             <span className="font-medium">Analyzed</span>
+            <span className="font-mono font-bold text-[#14142B] dark:text-[#FFFFFF]">{totals.analyzed}</span>
           </div>
           <div className="flex items-center gap-1.5 text-[#55557A] dark:text-[#9A9AB8]">
-            <span className="w-2.5 h-2.5 rounded-sm bg-[#D98E04] dark:bg-[#F5B942] ring-1 ring-[#D98E04]/30 inline-block" />
+            <span className="w-2.5 h-2.5 rounded-xs bg-[#D98E04] dark:bg-[#F5B942] inline-block shrink-0" />
             <span className="font-medium">Sanitized</span>
+            <span className="font-mono font-bold text-[#14142B] dark:text-[#FFFFFF]">{totals.sanitized}</span>
           </div>
           <div className="flex items-center gap-1.5 text-[#55557A] dark:text-[#9A9AB8]">
-            <span className="w-2.5 h-2.5 rounded-sm bg-[#D64545] dark:bg-[#FF7A7A] ring-1 ring-[#D64545]/30 inline-block" />
+            <span className="w-2.5 h-2.5 rounded-xs bg-[#D64545] dark:bg-[#FF7A7A] inline-block shrink-0" />
             <span className="font-medium">Blocked</span>
+            <span className="font-mono font-bold text-[#14142B] dark:text-[#FFFFFF]">{totals.blocked}</span>
           </div>
         </div>
       </div>
 
       {/* Inline Hand-Drawn SVG Grouped Bar Chart */}
-      <div className="relative w-full overflow-hidden select-none">
+      <div className="relative w-full overflow-hidden select-none mt-2">
         <svg
           ref={svgRef}
           viewBox={`0 0 ${width} ${height}`}
@@ -165,42 +195,48 @@ export default function ProtectionActivityChart({ data = [], loading = false, er
           <title>Protection Activity Comparison</title>
           <desc>Bar chart comparing analyzed, sanitized, and blocked events per date.</desc>
 
-          {/* Grid lines */}
-          {gridTicks.map(({ val, y }, i) => (
-            <g key={i}>
-              <line
-                x1={padLeft}
-                y1={y}
-                x2={width - padRight}
-                y2={y}
-                stroke="currentColor"
-                className="text-[#E7E7EF] dark:text-[#26262E]"
-                strokeDasharray={i === 0 ? undefined : '3 3'}
-                strokeWidth="1"
-              />
-              <text
-                x={padLeft - 8}
-                y={y + 4}
-                textAnchor="end"
-                className="text-[10px] font-mono fill-[#8B8BA3] dark:fill-[#686882]"
-              >
-                {formatK(val)}
-              </text>
-            </g>
-          ))}
+          {/* Nice Integer Grid lines */}
+          {niceTicks.map((val, i) => {
+            const y = padTop + plotH - (val / maxVal) * plotH;
+            return (
+              <g key={i}>
+                <line
+                  x1={padLeft}
+                  y1={y}
+                  x2={width - padRight}
+                  y2={y}
+                  stroke="currentColor"
+                  className="text-[#E7E7EF] dark:text-[#26262E]"
+                  strokeDasharray={i === 0 ? undefined : '3 3'}
+                  strokeWidth="1"
+                />
+                <text
+                  x={padLeft - 8}
+                  y={y + 4}
+                  textAnchor="end"
+                  className="text-[10px] font-mono fill-[#8B8BA3] dark:fill-[#686882]"
+                >
+                  {val >= 1000 ? `${Math.round(val / 1000)}k` : val}
+                </text>
+              </g>
+            );
+          })}
 
-          {/* Bar Groups */}
+          {/* Bar Groups (Centered in each slot even if only 1 label) */}
           {data.map((item, i) => {
-            const groupCenterX = padLeft + i * groupWidth + groupWidth / 2;
+            const groupCenterX = padLeft + i * slotWidth + slotWidth / 2;
             const totalBarsWidth = 3 * barWidth + 2 * barGap;
             const startX = groupCenterX - totalBarsWidth / 2;
 
             const isHovered = hoverIndex === i;
 
-            // Heights
-            const hAnalyzed = Math.max(0, ((item.analyzed || 0) / maxVal) * plotH);
-            const hSanitized = Math.max(0, ((item.sanitized || 0) / maxVal) * plotH);
-            const hBlocked = Math.max(0, ((item.blocked || 0) / maxVal) * plotH);
+            const analyzedVal = Number(item.analyzed) || 0;
+            const sanitizedVal = Number(item.sanitized) || 0;
+            const blockedVal = Number(item.blocked) || 0;
+
+            const hAnalyzed = Math.max(0, (analyzedVal / maxVal) * plotH);
+            const hSanitized = Math.max(0, (sanitizedVal / maxVal) * plotH);
+            const hBlocked = Math.max(0, (blockedVal / maxVal) * plotH);
 
             const yAnalyzed = padTop + plotH - hAnalyzed;
             const ySanitized = padTop + plotH - hSanitized;
@@ -211,13 +247,13 @@ export default function ProtectionActivityChart({ data = [], loading = false, er
                 {/* Column hover background highlight */}
                 {isHovered && (
                   <rect
-                    x={padLeft + i * groupWidth + 4}
+                    x={groupCenterX - totalBarsWidth / 2 - 8}
                     y={padTop}
-                    width={groupWidth - 8}
+                    width={totalBarsWidth + 16}
                     height={plotH}
                     fill="currentColor"
                     className="text-[#6D5AE6]/5 dark:text-[#8B7CF6]/10"
-                    rx="6"
+                    rx="8"
                   />
                 )}
 
@@ -226,8 +262,8 @@ export default function ProtectionActivityChart({ data = [], loading = false, er
                   x={startX}
                   y={yAnalyzed}
                   width={barWidth}
-                  height={hAnalyzed}
-                  rx="3"
+                  height={Math.max(2, hAnalyzed)}
+                  rx="3.5"
                   className="fill-[#6D5AE6] dark:fill-[#A99BFF]"
                 />
 
@@ -236,20 +272,34 @@ export default function ProtectionActivityChart({ data = [], loading = false, er
                   x={startX + barWidth + barGap}
                   y={ySanitized}
                   width={barWidth}
-                  height={hSanitized}
-                  rx="3"
+                  height={Math.max(2, hSanitized)}
+                  rx="3.5"
                   className="fill-[#D98E04] dark:fill-[#F5B942]"
                 />
 
-                {/* Bar 3: Blocked (Red) */}
-                <rect
-                  x={startX + (barWidth + barGap) * 2}
-                  y={yBlocked}
-                  width={barWidth}
-                  height={hBlocked}
-                  rx="3"
-                  className="fill-[#D64545] dark:fill-[#FF7A7A]"
-                />
+                {/* Bar 3: Blocked (Red) - With "Blocked 0" Zero-State Marker */}
+                {blockedVal > 0 ? (
+                  <rect
+                    x={startX + (barWidth + barGap) * 2}
+                    y={yBlocked}
+                    width={barWidth}
+                    height={Math.max(2, hBlocked)}
+                    rx="3.5"
+                    className="fill-[#D64545] dark:fill-[#FF7A7A]"
+                  />
+                ) : (
+                  // Small intentional flat tick for Blocked = 0
+                  <g>
+                    <rect
+                      x={startX + (barWidth + barGap) * 2}
+                      y={padTop + plotH - 3}
+                      width={barWidth}
+                      height="3"
+                      rx="1"
+                      className="fill-red-400/50 dark:fill-red-400/40"
+                    />
+                  </g>
+                )}
 
                 {/* X Axis Label */}
                 <text
@@ -268,19 +318,22 @@ export default function ProtectionActivityChart({ data = [], loading = false, er
             );
           })}
 
-          {/* Tooltip Overlay */}
+          {/* Tooltip Placed ABOVE the Group & Offset so bars stay fully visible */}
           {hoveredItem && hoverIndex !== null && (
             <g pointerEvents="none">
               {(() => {
-                const groupCenterX = padLeft + hoverIndex * groupWidth + groupWidth / 2;
-                const ttWidth = 120;
-                const ttHeight = 68;
+                const groupCenterX = padLeft + hoverIndex * slotWidth + slotWidth / 2;
+                const ttWidth = 140;
+                const ttHeight = 64;
                 let ttX = groupCenterX - ttWidth / 2;
                 if (ttX < padLeft) ttX = padLeft;
                 if (ttX + ttWidth > width - padRight) ttX = width - padRight - ttWidth;
 
+                // Position above group at padTop - 5
+                const ttY = Math.max(4, padTop - 25);
+
                 return (
-                  <g transform={`translate(${ttX}, ${padTop + 6})`}>
+                  <g transform={`translate(${ttX}, ${ttY})`}>
                     <rect
                       width={ttWidth}
                       height={ttHeight}
@@ -289,13 +342,13 @@ export default function ProtectionActivityChart({ data = [], loading = false, er
                     />
                     <text
                       x={ttWidth / 2}
-                      y="16"
+                      y="15"
                       textAnchor="middle"
-                      className="text-[11px] font-bold fill-white dark:fill-black"
+                      className="text-[10px] font-bold fill-white dark:fill-black uppercase tracking-wider"
                     >
                       {hoveredItem.label}
                     </text>
-                    <g transform="translate(10, 26)">
+                    <g transform="translate(10, 24)">
                       {/* Analyzed */}
                       <circle cx="4" cy="4" r="3" fill="#A99BFF" />
                       <text x="12" y="7" className="text-[9.5px] fill-white/80 dark:fill-black/80 font-medium">Analyzed:</text>
@@ -311,9 +364,9 @@ export default function ProtectionActivityChart({ data = [], loading = false, er
                       </text>
 
                       {/* Blocked */}
-                      <circle cx="4" cy="32" r="3" fill="#FF7A7A" />
-                      <text x="12" y="35" className="text-[9.5px] fill-white/80 dark:fill-black/80 font-medium">Blocked:</text>
-                      <text x={ttWidth - 20} y="35" textAnchor="end" className="text-[10px] font-mono font-bold fill-white dark:fill-black">
+                      <circle cx="4" cy="31" r="3" fill="#FF7A7A" />
+                      <text x="12" y="34" className="text-[9.5px] fill-white/80 dark:fill-black/80 font-medium">Blocked:</text>
+                      <text x={ttWidth - 20} y="34" textAnchor="end" className="text-[10px] font-mono font-bold fill-white dark:fill-black">
                         {hoveredItem.blocked}
                       </text>
                     </g>
@@ -334,7 +387,6 @@ export default function ProtectionActivityChart({ data = [], loading = false, er
           />
         </svg>
 
-        {/* Screen-reader table */}
         <div className="sr-only">
           <table>
             <caption>Protection Activity Summary</caption>
