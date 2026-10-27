@@ -9,7 +9,8 @@ import {
 
 import Login from './pages/Login';
 import Register from './pages/Register';
-import Home from './pages/Home';
+import Dashboard from './pages/Dashboard';
+import Settings from './pages/Settings';
 
 // Protected Route Component: only accessible to authenticated users
 function Protected({ children }) {
@@ -73,7 +74,15 @@ export default function App() {
         path="/"
         element={
           <Protected>
-            <Home />
+            <Dashboard />
+          </Protected>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <Protected>
+            <Settings />
           </Protected>
         }
       />
