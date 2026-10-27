@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LimitGuard - Secure Context Limiter</title>
+    <!-- Inter Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Immediate theme application before React loads to prevent flash of wrong theme -->
+    <script>
+      (function() {
+        try {
+          var saved = localStorage.getItem('theme');
+          var isDark = saved !== null 
+            ? saved === 'dark' 
+            : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          // If no preference and no saved theme, default is dark per specs
+          if (saved === null && !(window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches)) {
+            isDark = true;
+          }
+          if (isDark) {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
+        } catch (e) {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
+  </head>
+  <body class="bg-[#F7F7FB] dark:bg-[#0A0A0A] text-[#14142B] dark:text-[#FFFFFF] antialiased">
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
